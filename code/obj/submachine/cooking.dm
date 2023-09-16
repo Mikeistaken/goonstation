@@ -1,3 +1,65 @@
+// dunno a better place for it
+// what the fuck is a submachine anyways
+
+// --------------- TODO ---------------
+// Unit test for conflicting recipes (subtypes could easily cause), and duplicate recipes (might be the same test?)
+
+/// A datum which manages cooking recipes for various things (oven, processor, etc). Initialized in preMapLoad.
+var/global/datum/cooking_recipe_holder/cooking_holder
+
+/// A datum which manages cooking recipes for various things (oven, processor, etc)
+/datum/cooking_recipe_holder
+	/// A list mapping ingredient types to recipes which use those ingredients.
+	VAR_PRIVATE(ingredient_to_recipe_map)
+	var/list/ingredient_to_recipes_map
+	/// A list mapping recipes to their ingredients
+	VAR_PRIVATE(recipe_to_ingredient_map)
+	var/list/recipe_to_ingredients_map
+
+	New()
+		. = ..()
+		ingredient_to_recipes_map = list()
+		recipe_to_ingredients_map = list()
+		src.build_recipe_maps()
+
+	proc/build_recipe_maps()
+		// TODO add system for disabling of certain recipes while keeping them in the code? dunno
+		// var iterates over types, but we type it and use `as anything` in order to access the var values without creating an instance
+		for (var/datum/cookingrecipe/recipe_type as anything in concrete_typesof(/datum/cookingrecipe))
+			var/list/ingredients_to_amounts = list(initial(recipe_type.item1) = initial(recipe_type.amt1),
+													initial(recipe_type.item2) = initial(recipe_type.amt2),
+													initial(recipe_type.item3) = initial(recipe_type.amt3),
+													initial(recipe_type.item4) = initial(recipe_type.amt4))
+
+			for (var/ingredient in ingredients_to_amounts)
+				if (ingredient)
+					// ingredients -> recipes
+					LAZYLISTADD(ingredient_to_recipes_map[ingredient], recipe_type)
+
+					// recipes -> ingredients
+					recipe_to_ingredients_map[recipe_type] ||= list()
+					recipe_to_ingredients_map[recipe_type][ingredient] = ingredients_to_amounts[ingredient]
+
+
+	/// Gets all the recipes that can be made from a given ingredient type
+	proc/get_recipes_from_ingredient(var/ingredient_type)
+		// if we somehow started below movable, abort. also fails for non-types
+		if (!ispath(ingredient_type, /atom/movable))
+			CRASH("Illegal type [ingredient_type] passed to get_recipes_from_ingredient; must be a type deeper than /atom/movable.")
+		. = list()
+		// Realistically this could stop at /item- HOWEVER I do want to allow for theoretical mob-recipes and obj-recipes
+		while (ingredient_type != /atom/movable)
+			var/list/recipes = src.ingredient_to_recipes_map[ingredient_type]
+			if (recipes)
+				. |= src.ingredient_to_recipes_map[ingredient_type]
+			ingredient_type = type2parent(ingredient_type)
+
+	/// Gets all the ingredients needed for a recipe, in associative 'ingredient = quantity' format.
+	proc/get_ingredients_for_recipe(var/recipe_type)
+		. = recipe_to_ingredients_map[recipe_type]
+		if (!.)
+			CRASH("Non-recipe type [recipe_type] passed to get_ingredients_for_recipe. Must be a subtype of /datum/cookingrecipe.")
+
 TYPEINFO(/obj/submachine/chef_sink)
 	mats = 12
 
@@ -313,6 +375,8 @@ var/list/oven_recipes = list()
 TYPEINFO(/obj/submachine/chef_oven)
 	mats = 18
 
+#define HEAT_LOW "Low"
+#define HEAT_HIGH "High"
 /obj/submachine/chef_oven
 	name = "oven"
 	desc = "A multi-cooking unit featuring a hob, grill, oven and more."
@@ -326,24 +390,21 @@ TYPEINFO(/obj/submachine/chef_oven)
 	var/working = 0
 	var/time = 5
 	var/heat = "Low"
-	var/list/recipes = null
-	//var/allowed = list(/obj/item/reagent_containers/food/, /obj/item/parts/robot_parts/head, /obj/item/clothing/head/butt, /obj/item/organ/brain/obj/item)
+	var/static/list/recipes = null
 	var/allowed = list(/obj/item)
 
 	emag_act(var/mob/user, var/obj/item/card/emag/E)
 		if (!emagged)
-			emagged = 1
+			emagged = TRUE
 			if (user)
 				boutput(user, "<span class='notice'>[src] produces a strange grinding noise.</span>")
-			return 1
-		else
-			return 0
+			return TRUE
+		return FALSE
 
 	attack_hand(var/mob/user)
 		if (isghostdrone(user))
 			boutput(user, "<span class='alert'>\The [src] refuses to interface with you, as you are not a properly trained chef!</span>")
 			return
-
 
 		src.add_dialog(user)
 		var/dat = {"
@@ -698,7 +759,7 @@ table#cooktime a#start {
 			var/derivename = 0
 			var/recipebonus = 0
 			var/recook = 0
-			if (src.heat == "High")
+			if (src.heat == HEAT_HIGH)
 				cook_amt *= 2
 
 			// If emagged produce random output.
@@ -849,8 +910,8 @@ table#cooktime a#start {
 				boutput(usr, "<span class='alert'>The dials are locked! THIS IS HOW OVENS WORK OK</span>")
 				return
 			var/operation = text2num_safe(href_list["heat"])
-			if (operation == 1) src.heat = "High"
-			if (operation == 2) src.heat = "Low"
+			if (operation == 1) src.heat = HEAT_HIGH
+			if (operation == 2) src.heat = HEAT_LOW
 			src.updateUsrDialog()
 			return
 
@@ -935,6 +996,9 @@ table#cooktime a#start {
 		if (count < recipecount)
 			return 0
 		return 1
+
+#undef HEAT_LOW
+#undef HEAT_HIGH
 
 #define MIN_FLUID_INGREDIENT_LEVEL 10
 TYPEINFO(/obj/submachine/foodprocessor)
@@ -1313,7 +1377,8 @@ TYPEINFO(/obj/submachine/mixer)
 			return
 
 	proc/bowl_checkitem(var/recipeitem, var/recipecount)
-		if (!locate(recipeitem) in src.contents) return 0
+		if (!locate(recipeitem) in src.contents)
+			return FALSE
 		var/count = 0
 		for(var/obj/item/I in src.contents)
 			if(istype(I, recipeitem))
@@ -1321,8 +1386,8 @@ TYPEINFO(/obj/submachine/mixer)
 				to_remove += I
 
 		if (count < recipecount)
-			return 0
-		return 1
+			return FALSE
+		return TRUE
 
 	proc/mix()
 		var/amount = length(src.contents)
