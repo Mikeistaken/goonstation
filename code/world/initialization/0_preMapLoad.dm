@@ -83,6 +83,9 @@
 		Z_LOG_DEBUG("Preload", "Building material cache...")
 		buildMaterialCache()			//^^
 
+		Z_LOG_DEBUG("Preload", "Building cooking recipe lists...")
+		cooking_holder = new /datum/cooking_recipe_holder()
+
 		// no log because this is functionally instant
 		global_signal_holder = new
 
