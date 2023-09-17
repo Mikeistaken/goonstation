@@ -3,6 +3,11 @@
 
 // --------------- TODO ---------------
 // Unit test for conflicting recipes (subtypes could easily cause), and duplicate recipes (might be the same test?)
+// Determine best way to determine what recipes we're using
+	// Ensure it allows cooking multiple recipes at once
+	// Always prefer recipes with more ingredients? (greedy)
+		// Ex. 4 doughs would make 2 of whatever instead of 4 breads
+	// OR-together all the ingredient recipe lists to determine what we can actually cook, iterate/sort those?
 
 /// A datum which manages cooking recipes for various things (oven, processor, etc). Initialized in preMapLoad.
 var/global/datum/cooking_recipe_holder/cooking_holder
@@ -34,11 +39,14 @@ var/global/datum/cooking_recipe_holder/cooking_holder
 			for (var/ingredient in ingredients_to_amounts)
 				if (ingredient)
 					// ingredients -> recipes
-					LAZYLISTADD(ingredient_to_recipes_map[ingredient], recipe_type)
+					LAZYLISTADD(src.ingredient_to_recipes_map[ingredient], recipe_type)
 
 					// recipes -> ingredients
-					recipe_to_ingredients_map[recipe_type] ||= list()
-					recipe_to_ingredients_map[recipe_type][ingredient] = ingredients_to_amounts[ingredient]
+					src.recipe_to_ingredients_map[recipe_type] ||= list()
+					src.recipe_to_ingredients_map[recipe_type][ingredient] = ingredients_to_amounts[ingredient]
+
+		// sort recipe -> ingredient map descending based on length, so we can go down the list and take longer recipes first
+		src.recipe_to_ingredients_map =  sortList(src.recipe_to_ingredients_map, /proc/cmp_recipe_lengths)
 
 
 	/// Gets all the recipes that can be made from a given ingredient type
@@ -58,7 +66,24 @@ var/global/datum/cooking_recipe_holder/cooking_holder
 	proc/get_ingredients_for_recipe(var/recipe_type)
 		. = recipe_to_ingredients_map[recipe_type]
 		if (!.)
-			CRASH("Non-recipe type [recipe_type] passed to get_ingredients_for_recipe. Must be a subtype of /datum/cookingrecipe.")
+			CRASH("Non-recipe type [recipe_type] passed to get_ingredients_for_recipe; must be a subtype of /datum/cookingrecipe.")
+
+	/// Debug proc for checking recipe list order
+	proc/test_recipe_map_order()
+		for (var/i in 2 to length(src.recipe_to_ingredients_map))
+			// a should be larger
+			var/a_total = 0
+			var/b_total = 0
+			var/a = src.recipe_to_ingredients_map[src.recipe_to_ingredients_map[i-1]]
+			var/b = src.recipe_to_ingredients_map[src.recipe_to_ingredients_map[i]]
+			for (var/ingredient in a)
+				a_total += a[ingredient]
+			for (var/ingredient in b)
+				b_total += b[ingredient]
+
+			if (a_total < b_total)
+				CRASH("Recipe [src.recipe_to_ingredients_map[i-1]] should be sorted below [src.recipe_to_ingredients_map[i]], but wasn't")
+
 
 TYPEINFO(/obj/submachine/chef_sink)
 	mats = 12
