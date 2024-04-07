@@ -8,7 +8,7 @@
 import { BooleanLike } from 'common/react';
 
 export interface AntagonistPanelData {
-  tabs: AntagonistTypeTabData[]
+  tabs: AntagonistTypeTabData[];
 
   tabToOpenOn: string;
   currentTabSections: TabSectionData[];

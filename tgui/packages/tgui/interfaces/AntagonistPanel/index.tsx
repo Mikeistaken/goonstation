@@ -16,19 +16,13 @@ export const AntagonistPanel = (props, context) => {
   const { data } = useBackend<AntagonistPanelData>(context);
 
   return (
-    <Window
-      title="Antagonist Panel"
-      width={750}
-      height={500}>
-      <Window.Content
-        scrollable>
-        <Stack
-          fill>
+    <Window title="Antagonist Panel" width={750} height={500}>
+      <Window.Content scrollable>
+        <Stack fill>
           <Stack.Item>
             <AntagonistTypeTabs {...data} />
           </Stack.Item>
-          <Stack.Item
-            grow>
+          <Stack.Item grow>
             <AntagonistTypeTabBody {...data} />
           </Stack.Item>
         </Stack>
