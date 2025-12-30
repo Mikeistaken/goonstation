@@ -692,6 +692,24 @@ TYPEINFO(/obj/machinery/transception_pad)
 						var/sigindex = signal.data["data"]
 						if(isnum_safe(sigindex))
 							src.attempt_transceive(sigindex)
+					if("help")
+						var/datum/signal/help = get_free_signal()
+						help.data["address_1"] = sender
+						help.data["sender"] = src.net_id
+						if(signal.data["topic"])
+							help.data["description"] = name
+							help.data["topics"] = "send:receive"
+						else
+							help.data["topic"] = signal.data["topic"]
+							switch (lowertext(signal.data["topic"]))
+								if ("send")
+									help.data["description"] = "Calls the emergency shuttle."
+								if ("recieve")
+									help.data["description"] = "Recalls the emergency shuttle back to Central Command."
+								else
+									help.data["description"] = "ERROR: UNKNOWN TOPIC"
+
+
 
 
 	proc/post_signal(datum/signal/signal, var/newfreq)

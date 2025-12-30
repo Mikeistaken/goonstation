@@ -275,7 +275,48 @@ TYPEINFO(/obj/machinery/communications_dish)
 
 						SPAWN(0.3 SECONDS)
 							src.link.post_signal(src, filesig)
-
+					if("help")
+						var/datum/signal/help = get_free_signal()
+						help.source = src
+						help.data["sender"] = src.net_id
+						help.data["address_1"] = target
+						help.data["command"] = "term_message"
+						if(!commandList["topic"])
+							help.data["data"] = "Communications dish.\nTopics list: download"
+						else
+							switch(commandList["topic"])
+								if("list")
+									help.data["data"] = "Lists available messages."
+								if("download")
+									help.data["data"] = "Sends a file to your device containing the message you selected\nArguements: message."
+								else
+									help.data["data"] = "Invalid Topic."
+						SPAWN(0.3 SECONDS)
+							src.link.post_signal(src, help)
+			if("help")
+				var/datum/signal/help = get_free_signal()
+				help.source = src
+				help.data["sender"] = src.net_id
+				help.data["address_1"] = target
+				if (!signal.data["topic"])
+					help.data["description"] = "Communications dish"
+					help.data["topics"] = "call:recall:transmit"
+				else
+					help.data["topic"] = signal.data["topic"]
+					switch (lowertext(signal.data["topic"]))
+						if ("call")
+							help.data["description"] = "Calls the emergency shuttle."
+							help.data["args"] = "shuttle_id:acc_code:reason"
+						if ("recall")
+							help.data["description"] = "Recalls the emergency shuttle back to Central Command."
+							help.data["args"] = "shuttle_id:acc_code"
+						if ("transmit")
+							help.data["description"] = "Sends a message to either Central Command or the Partner ."
+							help.data["args"] = "transmit_type:acc_code:title:data:user"
+						else
+							help.data["description"] = "ERROR: UNKNOWN TOPIC"
+				SPAWN(0.3 SECONDS)
+					src.link.post_signal(src, help)
 /*
 				var/termcommand = lowertext(signal.data["data"])
 				if(!termcommand) return

@@ -1588,7 +1588,22 @@ ADMIN_INTERACT_PROCS(/obj/machinery/power/apc, proc/toggle_operating, proc/zapSt
 					update()
 					src.post_status(src.host_id,"command","term_message","data","command=ack")
 					return
-
+				if ("help")
+					var/datum/signal/help = get_free_signal()
+					help.source = src
+					help.data["sender"] = src.net_id
+					help.data["address_1"] = target
+					help.data["command"] = "term_message"
+					if(!lowertext(data["topic"]))
+						help.data["data"] = "Area Power Controller.\nTopics: status, setmode"
+					else
+						switch(lowertext(data["topic"]))
+							if("status")
+								help.data["data"] = "Displays the status of the Area Power Controller."
+							if("setmode")
+								help.data["data"] = "Sets the Area Power Controller settings.\nArguements: equip, light, environ, cover"
+							else
+								help.data["data"] = "Invalid Topic."
 			return
 
 		if("term_ping")

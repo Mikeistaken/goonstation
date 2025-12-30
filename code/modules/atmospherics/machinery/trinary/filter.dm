@@ -91,6 +91,8 @@
 		if(signal.data["command"] != "broadcast_status")
 			return FALSE
 
+	var/target = signal.data["sender"]
+
 	switch(signal.data["command"])
 		if("broadcast_status")
 			SPAWN(0.5 SECONDS)
@@ -128,14 +130,30 @@
 			var/datum/signal/help = get_free_signal()
 			help.transmission_method = TRANSMISSION_RADIO
 			help.source = src
-
-			help.data["info"] = "Command help. \
-									power_on - Turns on filter \
-									power_off - Turns off filter. \
-									power_toggle - Toggles filter. \
-									set_transfer_rate (parameter: Number) - Sets transfer rate in liters to parameter. Max at [MAX_VOLUME] L. \
-									set_gas (parameter: String) - Set gas filtering to parameter. Uses the shortform name for a gas."
-
+			help.data["sender"] = src.net_id
+			help.data["address_1"] = target
+			if (!signal.data["topic"])
+				help.data["description"] = "Gas Filter"
+				help.data["topics"] = "broadcast_status:power_on:power_off:power_toggle:set_transfer_rate:set_gas"
+			else
+				help.data["topic"] = signal.data["topic"]
+				switch (lowertext(signal.data["topic"]))
+					if ("broadcast_status")
+						help.data["description"] = "Broadcasts info about itself."
+					if ("power_on")
+						help.data["description"] = "Turns on the filter"
+					if ("power_off")
+						help.data["description"] = "Turns off the filter"
+					if ("power_toggle")
+						help.data["description"] = "Toggles the filter on/off"
+					if ("set_transfer_rate")
+						help.data["description"] = "Sets transfer rate in liters to parameter. Max at [MAX_VOLUME] L"
+						help.data["args"] = "parameter"
+					if ("set_gas")
+						help.data["description"] = "Set gas filtering to parameter. Uses the shortform name for a gas"
+						help.data["args"] = "parameter"
+					else
+						help.data["description"] = "ERROR: UNKNOWN TOPIC"
 			SEND_SIGNAL(src, COMSIG_MOVABLE_POST_RADIO_PACKET, help)
 
 	if(.)

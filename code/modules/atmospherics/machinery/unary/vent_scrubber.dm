@@ -121,6 +121,8 @@
 		if(signal.data["command"] != "broadcast_status")
 			return FALSE
 
+	var/target = signal.data["sender"]
+
 	switch(signal.data["command"])
 		if("power_on")
 			src.on = TRUE
@@ -159,14 +161,31 @@
 			var/datum/signal/help = get_free_signal()
 			help.transmission_method = TRANSMISSION_RADIO
 			help.source = src
-
-			help.data["info"] = "Command help. \
-									power_on - Turns on scrubber. \
-									power_off - Turns off scrubber. \
-									power_toggle - Toggles scrubber. \
-									set_siphon - Begins siphoning all gas. \
-									set_scrubbing - Begins scrubbing select gases. \
-									toggle_scrub_gas (parameter: String) - Toggles filtering for a specific gas. Uses the shortform name for a gas."
+			help.data["sender"] = src.net_id
+			help.data["address_1"] = target
+			if (!signal.data["topic"])
+				help.data["description"] = "Vent Scrubber"
+				help.data["topics"] = "power_on:power_off:power_toggle:set_siphon:set_scrubbing:toggle_scrub_gas:broadcast_status"
+			else
+				help.data["topic"] = signal.data["topic"]
+				switch (lowertext(signal.data["topic"]))
+					if ("power_on")
+						help.data["description"] = "Turns on the scrubber."
+					if ("power_off")
+						help.data["description"] = "Turns off the scrubber."
+					if ("power_toggle")
+						help.data["description"] = "Toggles the scrubber power."
+					if ("set_siphon")
+						help.data["description"] = "Begins siphoning all gas."
+					if ("set_scrubbing")
+						help.data["description"] = "Begins scrubbing select gases."
+					if ("toggle_scrub_gas")
+						help.data["description"] = "Toggles filtering for a specific gas. Uses the shortform name for a gas."
+						help.data["args"] = "parameter"
+					if ("broadcast_status")
+						help.data["description"] = "Broadcasts info about itself."
+					else
+						help.data["description"] = "ERROR: UNKNOWN TOPIC"
 
 			SEND_SIGNAL(src, COMSIG_MOVABLE_POST_RADIO_PACKET, help)
 

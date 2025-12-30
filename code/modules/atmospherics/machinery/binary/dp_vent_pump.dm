@@ -129,6 +129,8 @@
 		if(signal.data["command"] != "broadcast_status")
 			return FALSE
 
+	var/target = signal.data["sender"]
+
 	switch(signal.data["command"])
 		if("broadcast_status")
 			SPAWN(0.5 SECONDS)
@@ -184,6 +186,45 @@
 			src.external_pressure_bound = clamp(number, 0, ONE_ATMOSPHERE*50)
 			. = TRUE
 
+		if("help")
+			var/datum/signal/help = get_free_signal()
+			help.transmission_method = TRANSMISSION_RADIO
+			help.source = src
+			help.data["address_1"] = target
+			help.data["sender"] = src.net_id
+			if (!signal.data["topic"])
+				help.data["description"] = "Dual Port Air Vent"
+				help.data["topics"] = "broadcast_status:power_on:power_off:power_toggle:set_direction:set_checks:purge:stabalize:set_internal_pressure:set_external_pressure"
+			else
+				help.data["topic"] = signal.data["topic"]
+				switch (lowertext(signal.data["topic"]))
+					if ("broadcast_status")
+						help.data["description"] = "Broadcasts info about self."
+					if ("power_on")
+						help.data["description"] = "Turns on the pump"
+					if ("power_off")
+						help.data["description"] = "Turns off the pump"
+					if ("power_toggle")
+						help.data["description"] = "Toggles the pump power"
+					if ("set_direction")
+						help.data["description"] = "Sets the direction of the pump from 0-1"
+						help.data["args"] = "parameter"
+					if ("set_checks")
+						help.data["description"] = "Checks external pressure (1): internal pressure (2): or both (3)"
+						help.data["args"] = "parameter"
+					if ("purge")
+						help.data["description"] = "Siphons gas from the outside air into the vent"
+					if ("stabalize")
+						help.data["description"] = "Releases gas from the pipe into the air"
+					if ("set_internal_pressure")
+						help.data["description"] = "Sets the internal pressure bound in kpa"
+						help.data["args"] = "parameter"
+					if ("set_external_pressure")
+						help.data["description"] = "sets the external pressure bound in kpa"
+						help.data["args"] = "parameter"
+					else
+						help.data["description"] = "ERROR: UNKNOWN TOPIC"
+			SEND_SIGNAL(src, COMSIG_MOVABLE_POST_RADIO_PACKET, help)
 	if(.)
 		src.UpdateIcon()
 		var/turf/intact = get_turf(src)

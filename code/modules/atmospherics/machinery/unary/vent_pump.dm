@@ -131,6 +131,8 @@
 		if(signal.data["command"] != "broadcast_status")
 			return FALSE
 
+	var/target = signal.data["sender"]
+
 	switch(signal.data["command"])
 		if("power_on")
 			if (!src.on)
@@ -193,19 +195,42 @@
 			var/datum/signal/help = get_free_signal()
 			help.transmission_method = TRANSMISSION_RADIO
 			help.source = src
-
-			help.data["info"] = "Command help. \
-									broadcast_status - Broadcasts info about self. \
-									power_on - Turns on vent. \
-									power_off - Turns off vent. \
-									power_toggle - Toggles vent. \
-									set_direction (parameter: Number) - Switches between siphoning (parameter<=0.5) and releasing (parameter>0.5). \
-									purge - Switches to siphoning and removes external bounds check. \
-									end_purge - Switches to siphoning and adds external bounds check. \
-									stabilise - Switches to releasing and adds external bounds check. \
-									set_checks (parameter: Bitflag) - Controls bounds check. [BOUND_EXTERNAL] is external bounds. [BOUND_INTERNAL] is internal bouds. \
-									set_internal_pressure (parameter: Number) - Sets internal bound to parameter. Max at [ONE_ATMOSPHERE*50]. \
-									set_external_pressure (parameter: Number) - Sets external bound to parameter. Max at [ONE_ATMOSPHERE*50]."
+			help.data["sender"] = src.net_id
+			help.data["address_1"] = target
+			if (!signal.data["topic"])
+				help.data["description"] = "Volume pump"
+				help.data["topics"] = "broadcast_status:power_on:power_off:power_toggle:set_transfer_rate"
+			else
+				help.data["topic"] = signal.data["topic"]
+				switch (lowertext(signal.data["topic"]))
+					if ("broadcast_status")
+						help.data["description"] = "Broadcasts info about itself."
+					if ("power_on")
+						help.data["description"] = "Turns on the vent"
+					if ("power_off")
+						help.data["description"] = "Turns off the vent"
+					if ("power_toggle")
+						help.data["description"] = "Toggles vent on/off"
+					if ("set_direction")
+						help.data["description"] = "Switches between siphoning (parameter<=0.5) and releasing (parameter>0.5)"
+						help.data["args"] = "parameter"
+					if ("purge")
+						help.data["description"] = "Switches to siphoning and removes external bounds check"
+					if ("end_purge")
+						help.data["description"] = "Switches to siphoning and adds external bounds check"
+					if ("stabilise")
+						help.data["description"] = "Switches to releasing and adds external bounds check"
+					if ("set_checks")
+						help.data["description"] = "Controls bounds check. [BOUND_EXTERNAL] is external bounds. [BOUND_INTERNAL] is internal bouds"
+						help.data["args"] = "parameter"
+					if ("set_internal_pressure")
+						help.data["description"] = "Sets internal bound to parameter. Max at [ONE_ATMOSPHERE*50]"
+						help.data["args"] = "parameter"
+					if ("set_external_pressure")
+						help.data["description"] = "Sets external bound to parameter. Max at [ONE_ATMOSPHERE*50]"
+						help.data["args"] = "parameter"
+					else
+						help.data["description"] = "ERROR: UNKNOWN TOPIC"
 
 			SEND_SIGNAL(src, COMSIG_MOVABLE_POST_RADIO_PACKET, help)
 

@@ -337,6 +337,8 @@ TYPEINFO(/obj/machinery/status_display)
 		if (signal.data["address_tag"] != "STATDISPLAY" && signal.data["address_1"] != src.net_id)
 			return
 
+		var/target = signal.data["sender"]
+
 		switch(signal.data["command"])
 			if(STATUS_DISPLAY_PACKET_MODE_DISPLAY_DEFAULT)
 				src.mode = initial(src.mode)
@@ -373,6 +375,38 @@ TYPEINFO(/obj/machinery/status_display)
 			if(STATUS_DISPLAY_PACKET_MODE_DISPLAY_NUCLEAR)
 				src.mode = STATUS_DISPLAY_NUCLEAR
 				src.repeat_update = TRUE
+
+			if("help")
+				var/datum/signal/help = get_free_signal()
+				help.transmission_method = TRANSMISSION_RADIO
+				help.source = src
+				help.data["sender"] = src.net_id
+				help.data["address_1"] = target
+				if(!signal.data["topic"])
+					help.data["description"] = "Status_Display"
+					help.data["topics"] = "default:blank:shuttle:message:alert:market:nuclear"
+				else
+					switch(signal.data["topic"])
+						if("default")
+							help.data["description"] = "Sets the display to its default state."
+						if("blank")
+							help.data["description"] = "Sets the display to a blank screen."
+						if("shuttle")
+							help.data["description"] = "Sets the display to the current shuttle timer."
+						if("message")
+							help.data["description"] = "Displays the message you set."
+							help.data["args"] = "msg1:msg2"
+						if("alert")
+							help.data["description"] = "Sets the display to one of the following: default:redalert:biohazard:lockdown:destruct:nuclear"
+							help.data["args"] = "picture_state"
+						if("market")
+							help.data["description"] = "Sets the display to the market refresh timer."
+						if("nuclear")
+							help.data["description"] = "Sets the display to the nuclear screen if a nuke is armed."
+						else
+							help.data["description"] = "ERROR: UNKNOWN TOPIC"
+
+				SEND_SIGNAL(src, COMSIG_MOVABLE_POST_RADIO_PACKET, help)
 
 /// Shows the time to market shift by default
 /obj/machinery/status_display/market
