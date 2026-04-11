@@ -128,6 +128,25 @@ TYPEINFO(/area/station/shield_zone)
 				src.deactivate()
 				src.post_reply("SGEN_DACTVD", target)
 
+			if("help")
+				var/datum/signal/help = get_free_signal()
+				help.data["address_1"] = signal.data["sender"]
+				help.data["sender"] = src.net_id
+				if(signal.data["topic"])
+					help.data["description"] = name
+					help.data["topics"] = "activate:deactivate"
+				else
+					help.data["topic"] = signal.data["topic"]
+					switch (lowertext(signal.data["topic"]))
+						if ("activate")
+							help.data["description"] = "Turns on the shield generator"
+						if ("deactivate")
+							help.data["description"] = "Turns off the shield generator"
+						else
+							help.data["description"] = "ERROR: UNKNOWN TOPIC"
+				SPAWN(0.3 SECONDS)
+					src.link.post_signal(src, help)
+
 	// for testing atm
 	attack_hand(mob/user)
 		if (status & (NOPOWER|BROKEN) || !src.link)

@@ -648,13 +648,14 @@ TYPEINFO(/obj/machinery/sleeper)
 		switch(sigcommand)
 			if("status") //How is our patient doing?
 				var/patient_stat = "NONE"
+				var/sender = signal.data["sender"]
 				if(src.occupant)
 					patient_stat = "[src.occupant.get_brute_damage()];[src.occupant.get_burn_damage()];[src.occupant.get_toxin_damage()];[src.occupant.get_oxygen_deprivation()]"
 
 				var/datum/signal/reply = new
 				reply.data["command"] = "device_reply"
 				reply.data["status"] = patient_stat
-				reply.data["address_1"] = signal.data["sender"]
+				reply.data["address_1"] = sender
 				reply.data["sender"] = src.net_id
 				reply.transmission_method = TRANSMISSION_WIRE
 				SPAWN(0.5 SECONDS)
@@ -662,6 +663,25 @@ TYPEINFO(/obj/machinery/sleeper)
 
 			if("inject")
 				src.inject(null, 1)
+
+			if("help")
+				var/datum/signal/help = get_free_signal()
+				help.data["address_1"] = sender
+				help.data["sender"] = src.net_id
+				if(signal.data["topic"])
+					help.data["description"] = name
+					help.data["topics"] = "status:inject"
+				else
+					help.data["topic"] = signal.data["topic"]
+					switch (lowertext(signal.data["topic"]))
+						if ("status")
+							help.data["description"] = "Gives the status of the Sleeper and the patient inside"
+						if ("inject")
+							help.data["description"] = "Injects the Patient with medical chemicals"
+						else
+							help.data["description"] = "ERROR: UNKNOWN TOPIC"
+				SPAWN(0.5 SECONDS)
+					src.link.post_signal(src, help)
 
 
 TYPEINFO(/obj/machinery/sleeper/port_a_medbay)

@@ -254,6 +254,25 @@ ADMIN_INTERACT_PROCS(/obj/machinery/firealarm, proc/alarm, proc/reset)
 				src.alarm()
 			if ("reset")
 				src.reset()
+			if("help")
+				var/datum/signal/help = get_free_signal()
+				help.data["address_1"] = sender
+				help.data["sender"] = src.net_id
+				if(signal.data["topic"])
+					help.data["description"] = name
+					help.data["topics"] = "status:trigger:reset"
+				else
+					help.data["topic"] = signal.data["topic"]
+					switch (lowertext(signal.data["topic"]))
+						if ("status")
+							help.data["description"] = "Displays the status of the fire alarm"
+						if ("trigger")
+							help.data["description"] = "Triggers the fire alarm"
+						if ("reset")
+							help.data["description"] = "Turns off the fire alarm"
+						else
+							help.data["description"] = "ERROR: UNKNOWN TOPIC"
+				SEND_SIGNAL(src, COMSIG_MOVABLE_POST_RADIO_PACKET, help)
 
 	else if(signal.data["address_1"] == "ping")
 		SPAWN(0.5 SECONDS)

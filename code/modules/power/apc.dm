@@ -1604,6 +1604,8 @@ ADMIN_INTERACT_PROCS(/obj/machinery/power/apc, proc/toggle_operating, proc/zapSt
 								help.data["data"] = "Sets the Area Power Controller settings.\nArguements: equip, light, environ, cover"
 							else
 								help.data["data"] = "Invalid Topic."
+					SPAWN(0.3 SECONDS)
+						src.link.post_signal(src, help)
 			return
 
 		if("term_ping")
